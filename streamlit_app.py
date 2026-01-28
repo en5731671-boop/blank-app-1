@@ -2,20 +2,30 @@ import streamlit as st
 import pandas as pd
 from supabase import create_client
 
-# -----------------------
-# Supabase接続
-# -----------------------
+# =========================
+# Supabase 接続（KeyError防止）
+# =========================
+
+# st.secrets が正しく登録されているか確認
+if "SUPABASE_URL" not in st.secrets or "SUPABASE_KEY" not in st.secrets:
+    st.error("SupabaseのSecretsが登録されていません。SUPABASE_URLとSUPABASE_KEYを登録してください。")
+    st.stop()
+
 url = st.secrets["SUPABASE_URL"]
 key = st.secrets["SUPABASE_KEY"]
+
 supabase = create_client(url, key)
 
+# =========================
+# ページ設定
+# =========================
 st.set_page_config(page_title="学習リフレクションアプリ", layout="wide")
 st.title("📘 学習リフレクション・ログアプリ")
 st.caption("学習の「量」と「理解度」を同時に記録・可視化します")
 
-# -----------------------
+# =========================
 # 学習ログ追加フォーム
-# -----------------------
+# =========================
 st.header("➕ 学習ログを追加")
 
 with st.form("study_form"):
@@ -26,20 +36,23 @@ with st.form("study_form"):
     reflection = st.text_area("振り返り・気づき")
     submitted = st.form_submit_button("記録する")
 
-if submitted and task_name:
-    supabase.table("study_logs").insert({
-        "task_name": task_name,
-        "subject": subject,
-        "study_minutes": study_minutes,
-        "understanding": understanding,
-        "reflection": reflection
-    }).execute()
-    st.success("学習ログを保存しました！")
-    st.experimental_rerun()  # 保存後に更新
+if submitted:
+    if not task_name:
+        st.warning("タスク名を入力してください")
+    else:
+        supabase.table("study_logs").insert({
+            "task_name": task_name,
+            "subject": subject,
+            "study_minutes": study_minutes,
+            "understanding": understanding,
+            "reflection": reflection
+        }).execute()
+        st.success("学習ログを保存しました！")
+        st.experimental_rerun()  # 保存後に更新
 
-# -----------------------
+# =========================
 # 学習ログ取得
-# -----------------------
+# =========================
 response = supabase.table("study_logs").select("*").order("created_at").execute()
 data = response.data
 
@@ -49,9 +62,9 @@ if not data:
 
 df = pd.DataFrame(data)
 
-# -----------------------
-# 学習ログ一覧
-# -----------------------
+# =========================
+# 学習ログ一覧表示
+# =========================
 st.header("📋 学習ログ一覧")
 
 for _, row in df.iterrows():
@@ -61,9 +74,9 @@ for _, row in df.iterrows():
         st.write("📝 振り返り")
         st.write(row["reflection"] if row["reflection"] else "（記入なし）")
 
-# -----------------------
+# =========================
 # 分析・可視化
-# -----------------------
+# =========================
 st.header("📊 学習のふりかえり分析")
 
 col1, col2 = st.columns(2)
@@ -81,9 +94,9 @@ st.subheader("科目別 学習時間")
 subject_sum = df.groupby("subject")["study_minutes"].sum()
 st.bar_chart(subject_sum)
 
-# -----------------------
-# ログ削除機能（任意）
-# -----------------------
+# =========================
+# ログ削除機能
+# =========================
 st.header("🗑️ 学習ログ削除")
 for _, row in df.iterrows():
     if st.button(f"削除: {row['task_name']} ({row['subject']})", key=row['id']):
