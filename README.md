@@ -1,19 +1,46 @@
-# 🎈 Blank app template
+# 学習リフレクション・ログアプリ
 
-A simple Streamlit app template for you to modify!
+📘 このアプリは、自分の学習内容を記録し、振り返りや分析ができるアプリです。  
+登録した学習タスクや学習時間、理解度、振り返りコメントをもとに、科目別や日別の学習状況をグラフで確認できます。
 
-[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://blank-app-template.streamlit.app/)
+---
 
-### How to run it on your own machine
+## 💡 アプリの特徴
 
-1. Install the requirements
+- **学習ログの登録**
+  - タスク名、科目名、学習時間、理解度（1〜5）、振り返りコメントを登録可能
+- **学習ログの一覧表示**
+  - 登録した内容を展開可能形式で確認
+- **学習分析・可視化**
+  - 総学習時間、平均理解度
+  - 理解度 × 学習時間の散布図
+  - 科目別学習時間と平均理解度の棒グラフ
+  - 日別学習時間の推移グラフ
+- **学習ログの削除**
+  - 個別のログを削除可能
+- **データ永続化**
+  - Supabase に保存されるため、アプリが休止してもデータは残ります
 
-   ```
-   $ pip install -r requirements.txt
-   ```
+---
 
-2. Run the app
+## 🔗 アプリの試用リンク
 
-   ```
-   $ streamlit run streamlit_app.py
-   ```
+[こちらからアプリを利用できます](https://あなたのユーザー名-アプリ名.streamlitapp.com)
+
+※アクセス時には、ブラウザのシークレットモードや別アカウントで表示できることを確認してください。
+
+---
+
+## 🛠️ 開発について
+
+- Streamlit を使ったフロントエンド
+- Supabase に学習ログを永続保存
+- AI を活用してフォーム入力、データ取得、可視化を 1 ファイルで実装
+- 注意点として、`st.secrets` に `SUPABASE_URL` と `SUPABASE_KEY` を登録する必要があります
+
+---
+
+## ⚡ 今後の改良案
+
+- 科目ごとの理解度と学習時間を色分けした複合グラフの追加
+- 学習の達成度に応じた通知や目標管理機能の追加
