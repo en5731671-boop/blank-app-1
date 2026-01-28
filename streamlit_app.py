@@ -14,6 +14,9 @@ url = st.secrets["SUPABASE_URL"]
 key = st.secrets["SUPABASE_KEY"]
 supabase = create_client(url, key)
 
+# =========================
+# ページ設定
+# =========================
 st.set_page_config(page_title="学習リフレクションアプリ", layout="wide")
 st.title("📘 学習リフレクション・ログアプリ")
 st.caption("学習の量と理解度を記録し、可視化します")
@@ -22,7 +25,6 @@ st.caption("学習の量と理解度を記録し、可視化します")
 # 学習ログ追加フォーム
 # =========================
 st.header("➕ 学習ログを追加")
-
 with st.form("study_form"):
     task_name = st.text_input("学習内容（例：RSA暗号の復習）")
     subject = st.text_input("科目名")
@@ -35,13 +37,14 @@ if submitted:
     if not task_name:
         st.warning("タスク名を入力してください")
     else:
+        # datetimeをISO文字列に変換して送信 → TypeError 回避
         supabase.table("study_logs").insert({
             "task_name": task_name,
             "subject": subject,
             "study_minutes": study_minutes,
             "understanding": understanding,
             "reflection": reflection,
-            "created_at": datetime.utcnow()
+            "created_at": datetime.utcnow().isoformat()
         }).execute()
         st.success("学習ログを保存しました！")
 
@@ -62,7 +65,6 @@ df["created_at"] = pd.to_datetime(df["created_at"])
 # 学習ログ一覧
 # =========================
 st.header("📋 学習ログ一覧")
-
 for _, row in df.iterrows():
     with st.expander(f"📌 {row['task_name']}（{row['subject']}）"):
         st.write(f"⏱ 学習時間：{row['study_minutes']} 分")
@@ -75,7 +77,6 @@ for _, row in df.iterrows():
 # =========================
 st.header("📊 学習のふりかえり分析")
 
-# 総学習時間と平均理解度
 col1, col2 = st.columns(2)
 with col1:
     total_time = df["study_minutes"].sum()
@@ -99,7 +100,7 @@ subject_avg_understanding = df.groupby("subject")["understanding"].mean()
 st.bar_chart(subject_avg_understanding)
 
 # 日付別学習時間推移
-st.subheader("日付別 学習時間推移")
+st.subheader("日別 学習時間推移")
 daily_sum = df.groupby(df["created_at"].dt.date)["study_minutes"].sum()
 st.line_chart(daily_sum)
 
