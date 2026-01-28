@@ -1,27 +1,22 @@
 import streamlit as st
 import pandas as pd
 from supabase import create_client
+from datetime import datetime
 
 # =========================
-# Supabase 接続（KeyError防止）
+# Supabase接続チェック
 # =========================
-
-# st.secrets が正しく登録されているか確認
 if "SUPABASE_URL" not in st.secrets or "SUPABASE_KEY" not in st.secrets:
     st.error("SupabaseのSecretsが登録されていません。SUPABASE_URLとSUPABASE_KEYを登録してください。")
     st.stop()
 
 url = st.secrets["SUPABASE_URL"]
 key = st.secrets["SUPABASE_KEY"]
-
 supabase = create_client(url, key)
 
-# =========================
-# ページ設定
-# =========================
 st.set_page_config(page_title="学習リフレクションアプリ", layout="wide")
 st.title("📘 学習リフレクション・ログアプリ")
-st.caption("学習の「量」と「理解度」を同時に記録・可視化します")
+st.caption("学習の量と理解度を記録し、可視化します")
 
 # =========================
 # 学習ログ追加フォーム
@@ -45,10 +40,10 @@ if submitted:
             "subject": subject,
             "study_minutes": study_minutes,
             "understanding": understanding,
-            "reflection": reflection
+            "reflection": reflection,
+            "created_at": datetime.utcnow()
         }).execute()
         st.success("学習ログを保存しました！")
-        st.experimental_rerun()  # 保存後に更新
 
 # =========================
 # 学習ログ取得
@@ -61,9 +56,10 @@ if not data:
     st.stop()
 
 df = pd.DataFrame(data)
+df["created_at"] = pd.to_datetime(df["created_at"])
 
 # =========================
-# 学習ログ一覧表示
+# 学習ログ一覧
 # =========================
 st.header("📋 学習ログ一覧")
 
@@ -79,6 +75,7 @@ for _, row in df.iterrows():
 # =========================
 st.header("📊 学習のふりかえり分析")
 
+# 総学習時間と平均理解度
 col1, col2 = st.columns(2)
 with col1:
     total_time = df["study_minutes"].sum()
@@ -87,19 +84,30 @@ with col2:
     avg_understanding = round(df["understanding"].mean(), 2)
     st.metric("平均理解度", avg_understanding)
 
+# 理解度 × 学習時間散布図
 st.subheader("理解度 × 学習時間")
 st.scatter_chart(df[["study_minutes", "understanding"]])
 
+# 科目別学習時間
 st.subheader("科目別 学習時間")
 subject_sum = df.groupby("subject")["study_minutes"].sum()
 st.bar_chart(subject_sum)
 
+# 科目別平均理解度
+st.subheader("科目別 平均理解度")
+subject_avg_understanding = df.groupby("subject")["understanding"].mean()
+st.bar_chart(subject_avg_understanding)
+
+# 日付別学習時間推移
+st.subheader("日付別 学習時間推移")
+daily_sum = df.groupby(df["created_at"].dt.date)["study_minutes"].sum()
+st.line_chart(daily_sum)
+
 # =========================
-# ログ削除機能
+# 学習ログ削除
 # =========================
 st.header("🗑️ 学習ログ削除")
 for _, row in df.iterrows():
     if st.button(f"削除: {row['task_name']} ({row['subject']})", key=row['id']):
         supabase.table("study_logs").delete().eq("id", row['id']).execute()
         st.success(f"{row['task_name']} を削除しました")
-        st.experimental_rerun()
