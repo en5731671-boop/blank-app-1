@@ -5,8 +5,8 @@ import pandas as pd
 # ====================
 # Supabase 接続
 # ====================
-url = st.secrets["SUPABASE_URL"]
-key = st.secrets["SUPABASE_KEY"]
+url = st.secrets["https://sfjpcncnwgbusepelhyn.supabase.co"]
+key = st.secrets["sb_publishable_IXFmcYaPOR0Jmwhf_GgdaQ_JdFadnHn"]
 supabase = create_client(url, key)
 
 st.set_page_config(page_title="学習リフレクションアプリ", layout="wide")
