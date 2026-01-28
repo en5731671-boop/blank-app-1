@@ -1,22 +1,21 @@
 import streamlit as st
-from supabase import create_client
 import pandas as pd
+from supabase import create_client
 
-# ====================
-# Supabase 接続
-# ====================
-url = st.secrets["https://sfjpcncnwgbusepelhyn.supabase.co"]
-key = st.secrets["sb_publishable_IXFmcYaPOR0Jmwhf_GgdaQ_JdFadnHn"]
+# -----------------------
+# Supabase接続
+# -----------------------
+url = st.secrets["SUPABASE_URL"]
+key = st.secrets["SUPABASE_KEY"]
 supabase = create_client(url, key)
 
 st.set_page_config(page_title="学習リフレクションアプリ", layout="wide")
-
 st.title("📘 学習リフレクション・ログアプリ")
 st.caption("学習の「量」と「理解度」を同時に記録・可視化します")
 
-# ====================
-# 入力フォーム
-# ====================
+# -----------------------
+# 学習ログ追加フォーム
+# -----------------------
 st.header("➕ 学習ログを追加")
 
 with st.form("study_form"):
@@ -25,7 +24,6 @@ with st.form("study_form"):
     study_minutes = st.number_input("学習時間（分）", 0, step=10)
     understanding = st.slider("理解度（1：難しい〜5：よく理解できた）", 1, 5, 3)
     reflection = st.text_area("振り返り・気づき")
-
     submitted = st.form_submit_button("記録する")
 
 if submitted and task_name:
@@ -37,10 +35,11 @@ if submitted and task_name:
         "reflection": reflection
     }).execute()
     st.success("学習ログを保存しました！")
+    st.experimental_rerun()  # 保存後に更新
 
-# ====================
-# データ取得
-# ====================
+# -----------------------
+# 学習ログ取得
+# -----------------------
 response = supabase.table("study_logs").select("*").order("created_at").execute()
 data = response.data
 
@@ -50,9 +49,9 @@ if not data:
 
 df = pd.DataFrame(data)
 
-# ====================
-# 一覧表示
-# ====================
+# -----------------------
+# 学習ログ一覧
+# -----------------------
 st.header("📋 学習ログ一覧")
 
 for _, row in df.iterrows():
@@ -62,28 +61,32 @@ for _, row in df.iterrows():
         st.write("📝 振り返り")
         st.write(row["reflection"] if row["reflection"] else "（記入なし）")
 
-# ====================
+# -----------------------
 # 分析・可視化
-# ====================
+# -----------------------
 st.header("📊 学習のふりかえり分析")
 
 col1, col2 = st.columns(2)
-
 with col1:
     total_time = df["study_minutes"].sum()
     st.metric("総学習時間", f"{total_time} 分")
-
 with col2:
     avg_understanding = round(df["understanding"].mean(), 2)
     st.metric("平均理解度", avg_understanding)
 
 st.subheader("理解度 × 学習時間")
-
-st.scatter_chart(
-    df[["study_minutes", "understanding"]]
-)
+st.scatter_chart(df[["study_minutes", "understanding"]])
 
 st.subheader("科目別 学習時間")
-
 subject_sum = df.groupby("subject")["study_minutes"].sum()
 st.bar_chart(subject_sum)
+
+# -----------------------
+# ログ削除機能（任意）
+# -----------------------
+st.header("🗑️ 学習ログ削除")
+for _, row in df.iterrows():
+    if st.button(f"削除: {row['task_name']} ({row['subject']})", key=row['id']):
+        supabase.table("study_logs").delete().eq("id", row['id']).execute()
+        st.success(f"{row['task_name']} を削除しました")
+        st.experimental_rerun()
